@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C++ Lifetime Stepper — Code • Stack • Heap</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#0f1a34; --border:#1f2a41; --fg:#e8ecf1; --muted:#a7b3c2;
+    --accent:#7cc0ff; --stack:#9bf6a4; --heap:#ffe28a; --danger:#ff7b7b;
+    --code:#0b152b; --hl:#1b2b4d; --good:#89ffc3; --warn:#ffd166;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+  header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  header h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
+  header .hint{font-size:12px;color:var(--muted)}
+  .container{display:grid;grid-template-columns: 1.2fr 1fr 1fr; gap:12px; padding:12px 12px 0 12px; height:calc(100vh - 56px);}
+  .panel{border:1px solid var(--border); border-radius:12px; background:linear-gradient(180deg,#101a34,#0b1220); overflow:hidden; display:flex; flex-direction:column;}
+  .panel h2{margin:0; padding:10px 12px; font-size:13px; letter-spacing:.3px; border-bottom:1px solid var(--border); background:#0f1a34; color:var(--muted)}
+  .body{flex:1; position:relative; overflow:auto;}
+
+  /* Code panel */
+  pre{margin:0; background:var(--code); color:var(--fg); padding:10px 0 180px 0;}
+  code{display:block; font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace; font-size:13px; line-height:1.6;}
+  .line{display:flex; gap:8px; padding:0 12px;}
+  .gutter{width:28px; text-align:right; color:var(--muted); user-select:none;}
+  .src{flex:1; white-space:pre;}
+  .line.active{background:var(--hl);}
+  .anno{color:var(--muted); margin-left:6px; font-style:italic;}
+
+  /* Stack panel */
+  .stack-body{padding:10px; display:flex; flex-direction:column-reverse; gap:8px; align-items:stretch; height:100%;}
+  .stackvar{border:1px solid #24405f; background:#0b1b30; border-radius:10px; padding:8px 10px; color:var(--stack); font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace; font-size:12px;}
+  .stackvar .meta{display:block; color:var(--muted); font-size:11px; margin-top:4px;}
+  .stack-empty{color:var(--muted); text-align:center; margin-top:12px;}
+
+  /* Heap panel */
+  .heap-body{padding:10px; display:flex; flex-wrap:wrap; gap:10px; align-content:flex-start; align-items:flex-start;}
+  .heapobj{min-width:160px; max-width:220px; border:1px solid var(--border); background:#0e1a31; border-radius:10px; padding:8px 10px;
+           color:var(--heap); font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace; font-size:12px;
+           box-shadow:0 6px 18px rgba(0,0,0,.35); position:relative;}
+  .heapobj .meta{display:block; color:var(--muted); font-size:11px; margin-top:4px;}
+  .heapobj.leak{outline:2px dashed var(--warn);}
+  .heapobj.freed{opacity:.35; filter:saturate(.5);}
+
+  /* Controls */
+  .controls{position:absolute; left:12px; bottom:12px; right:12px; display:flex; gap:8px; align-items:center; justify-content:space-between;}
+  .btn{border:1px solid var(--border); background:#0f1a34; color:var(--fg); padding:8px 12px; border-radius:10px; cursor:pointer; font-size:13px;}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+  .legend{display:flex; gap:14px; font-size:12px; color:var(--muted);}
+  .dot{width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px;}
+  .dot.stack{background:var(--stack);} .dot.heap{background:var(--heap);} .dot.warn{background:var(--warn);}
+  footer{position:absolute; left:12px; right:12px; bottom:12px; display:flex; gap:8px; align-items:center; justify-content:space-between;}
+  .status{font-size:12px; color:var(--muted);}
+</style>
+</head>
+<body>
+  <header>
+    <h1>C++ Lifetime Stepper — <span style="color:var(--accent)">Code</span> • <span style="color:var(--stack)">Stack</span> • <span style="color:var(--heap)">Heap</span></h1>
+    <div class="hint">Use ← / → to step • Slide = one function run • Return / closing brace clears stack</div>
+  </header>
+  <div class="container">
+    <!-- Code Panel -->
+    <section class="panel" id="codePanel">
+      <h2>1) Code</h2>
+      <div class="body">
+        <pre><code id="code">
+        </code></pre>
+      </div>
+      <div class="controls">
+        <div class="legend">
+          <span><span class="dot stack"></span>stack local</span>
+          <span><span class="dot heap"></span>heap object</span>
+          <span><span class="dot warn"></span>leak</span>
+        </div>
+        <div>
+          <button class="btn" id="prevBtn">← Prev</button>
+          <button class="btn" id="nextBtn">Next →</button>
+          <button class="btn" id="resetBtn">Reset</button>
+        </div>
+      </div>
+    </section>
+    <!-- Stack Panel -->
+    <section class="panel">
+      <h2>2) Stack (locals in current frame)</h2>
+      <div class="body stack-body" id="stackBody">
+        <div class="stack-empty" id="stackEmpty">⟂ (empty)</div>
+      </div>
+    </section>
+    <!-- Heap Panel -->
+    <section class="panel">
+      <h2>3) Heap (persists until delete / RAII)</h2>
+      <div class="body heap-body" id="heapBody">
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="status" id="status">Step 0 / 14</div>
+    <div class="status">Tip: narrate “ownership” as you step. Students watch lifetimes happen.</div>
+  </footer>
+
+<script>
+// ----- Sample C++ function and step actions -----
+const program = [
+  { src: "int run() {", anno: "enter function; stack frame created", action: null },
+  { src: "  int a = 5;", action: {type:"push_stack", name:"a", value:"5", info:"int"} },
+  { src: "  float f = 3.14f;", action: {type:"push_stack", name:"f", value:"3.14", info:"float"} },
+  { src: "  char buf[8] = {0};", action: {type:"push_stack", name:"buf[8]", value:"{0}", info:"char[8]"} },
+  { src: "  int arr[3] = {1,2,3};", action: {type:"push_stack", name:"arr[3]", value:"{1,2,3}", info:"int[3]"} },
+  { src: "  int* p = new int(42);", action: {type:"alloc_heap", id:"H1", label:"int* p → 42", meta:"owner: run()"} },
+  { src: "  int* q = new int[4]{9,8,7,6};", action: {type:"alloc_heap", id:"H2", label:"int* q → [9,8,7,6]", meta:"owner: run()"} },
+  { src: "  // use(p, q);", action: null },
+  { src: "  delete p;", action: {type:"free_heap", id:"H1"} },
+  { src: "  // oops: forget to delete[] q;", action: {type:"leak", id:"H2"} },
+  { src: "  a += arr[0];", action: {type:"update_stack", name:"a", value:"6"} },
+  { src: "  return a;", action: {type:"return"} },
+  { src: "}", action: {type:"close"} },
+];
+
+// ----- DOM -----
+const codeEl = document.getElementById('code');
+const stackBody = document.getElementById('stackBody');
+const stackEmpty = document.getElementById('stackEmpty');
+const heapBody = document.getElementById('heapBody');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const resetBtn = document.getElementById('resetBtn');
+const statusEl = document.getElementById('status');
+
+// ----- State -----
+let step = 0;
+const stack = []; // {name, value, info, el}
+const heap = new Map(); // id -> {label, meta, el, leaked}
+
+// ----- Render code -----
+function renderCode(){
+  codeEl.innerHTML = "";
+  program.forEach((line, i) => {
+    const row = document.createElement('div');
+    row.className = 'line' + (i===step ? ' active' : '');
+    const g = document.createElement('div'); g.className='gutter'; g.textContent = i+1;
+    const s = document.createElement('div'); s.className='src'; s.textContent = line.src;
+    if(line.anno){
+      const ann = document.createElement('span'); ann.className='anno'; ann.textContent = '// '+ line.anno; s.appendChild(ann);
+    }
+    row.appendChild(g); row.appendChild(s);
+    codeEl.appendChild(row);
+  });
+}
+
+// ----- Stack helpers -----
+function updateStackEmpty(){
+  if(stack.length===0){ stackEmpty.style.display = 'block'; }
+  else { stackEmpty.style.display = 'none'; }
+}
+function pushStack(name, value, info){
+  const el = document.createElement('div');
+  el.className = 'stackvar';
+  el.innerHTML = `${name} = ${value}<span class="meta">${info}</span>`;
+  stackBody.appendChild(el);
+  stack.push({name,value,info,el});
+  updateStackEmpty();
+}
+function updateStackValue(name, value){
+  const it = stack.find(x=>x.name===name);
+  if(it){ it.value=value; it.el.innerHTML = `${name} = ${value}<span class="meta">${it.info}</span>`; }
+}
+function clearStack(){
+  stack.forEach(x=>x.el.remove());
+  stack.length = 0;
+  updateStackEmpty();
+}
+
+// ----- Heap helpers -----
+function allocHeap(id, label, meta){
+  if(heap.has(id)) return;
+  const el = document.createElement('div');
+  el.className = 'heapobj';
+  el.innerHTML = `${label}<span class="meta">${meta||""}</span>`;
+  heapBody.appendChild(el);
+  heap.set(id,{label,meta,el,leaked:false});
+}
+function freeHeap(id){
+  const obj = heap.get(id);
+  if(!obj) return;
+  obj.el.classList.add('freed');
+  setTimeout(()=>{ obj.el.remove(); heap.delete(id); }, 200);
+}
+function markLeak(id){
+  const obj = heap.get(id);
+  if(obj){ obj.leaked = true; obj.el.classList.add('leak'); }
+}
+function clearHeap(){
+  heap.forEach((v,k)=> v.el.remove());
+  heap.clear();
+}
+
+// ----- Step engine -----
+function apply(action){
+  if(!action) return;
+  switch(action.type){
+    case 'push_stack': pushStack(action.name, action.value, action.info||""); break;
+    case 'update_stack': updateStackValue(action.name, action.value); break;
+    case 'alloc_heap': allocHeap(action.id, action.label, action.meta); break;
+    case 'free_heap': freeHeap(action.id); break;
+    case 'leak': markLeak(action.id); break;
+    case 'return': clearStack(); break;
+    case 'close': clearStack(); break;
+  }
+}
+
+function gotoStep(n){
+  n = Math.max(0, Math.min(program.length-1, n));
+  // Reset and replay up to n
+  step = 0;
+  clearStack(); clearHeap();
+  for(let i=0;i<=n;i++){ apply(program[i].action); step = i; }
+  renderCode();
+  statusEl.textContent = `Step ${step} / ${program.length-1}`;
+  prevBtn.disabled = (step===0);
+  nextBtn.disabled = (step===program.length-1);
+}
+
+prevBtn.onclick = ()=> gotoStep(step-1);
+nextBtn.onclick = ()=> gotoStep(step+1);
+resetBtn.onclick = ()=> gotoStep(0);
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='ArrowRight' || e.key==='PageDown' || e.key===' '){ gotoStep(step+1); }
+  if(e.key==='ArrowLeft' || e.key==='PageUp'){ gotoStep(step-1); }
+});
+
+// Init
+renderCode(); updateStackEmpty();
+gotoStep(0);
+</script>
+</body>
+</html>
