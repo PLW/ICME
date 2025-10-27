@@ -90,7 +90,7 @@
     </section>
     <!-- Heap Panel -->
     <section class="panel">
-      <h2>3) Heap (persists until delete / RAII)</h2>
+      <h2>3) Heap (dynamic variables)</h2>
       <div class="body heap-body" id="heapBody">
       </div>
     </section>
@@ -104,7 +104,7 @@
 <script>
 // ----- Sample C++ function and step actions -----
 const program = [
-  { src: "int run() {", anno: "enter function; stack frame created", action: null },
+  { src: "int run() {", anno: "stack frame created", action: null },
   { src: "  int a = 5;", action: {type:"push_stack", name:"a", value:"5", info:"int"} },
   { src: "  float f = 3.14f;", action: {type:"push_stack", name:"f", value:"3.14", info:"float"} },
   { src: "  char buf[8] = {0};", action: {type:"push_stack", name:"buf[8]", value:"{0}", info:"char[8]"} },
