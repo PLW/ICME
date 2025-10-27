@@ -1,238 +1,833 @@
-<!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>C++ Lifetime Stepper — Code • Stack • Heap</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo Slide</title>
 <style>
-  :root{
-    --bg:#0b1220; --panel:#0f1a34; --border:#1f2a41; --fg:#e8ecf1; --muted:#a7b3c2;
-    --accent:#7cc0ff; --stack:#9bf6a4; --heap:#ffe28a; --danger:#ff7b7b;
-    --code:#0b152b; --hl:#1b2b4d; --good:#89ffc3; --warn:#ffd166;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
-  header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-  header h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
-  header .hint{font-size:12px;color:var(--muted)}
-  .container{display:grid;grid-template-columns: 1.2fr 1fr 1fr; gap:12px; padding:12px 12px 0 12px; height:calc(100vh - 56px);}
-  .panel{border:1px solid var(--border); border-radius:12px; background:linear-gradient(180deg,#101a34,#0b1220); overflow:hidden; display:flex; flex-direction:column;}
-  .panel h2{margin:0; padding:10px 12px; font-size:13px; letter-spacing:.3px; border-bottom:1px solid var(--border); background:#0f1a34; color:var(--muted)}
-  .body{flex:1; position:relative; overflow:auto;}
+:root{
+  --bg:#0b1220; --panel:#0f1a34; --border:#1f2a41; --fg:#e8ecf1; --muted:#a7b3c2;
+  --accent:#7cc0ff; --stack:#9bf6a4; --heap:#ffe28a; --danger:#ff7b7b;
+  --code:#0b152b; --hl:#1b2b4d; --warn:#ffd166;
+}
 
-  /* Code panel */
-  pre{margin:0; background:var(--code); color:var(--fg); padding:10px 0 180px 0;}
-  code{display:block; font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace; font-size:13px; line-height:1.6;}
-  .line{display:flex; gap:8px; padding:0 12px;}
-  .gutter{width:28px; text-align:right; color:var(--muted); user-select:none;}
-  .src{flex:1; white-space:pre;}
-  .line.active{background:var(--hl);}
-  .anno{color:var(--muted); margin-left:6px; font-style:italic;}
+*{box-sizing:border-box}
 
-  /* Stack panel */
-  .stack-body{padding:10px; display:flex; flex-direction:column-reverse; gap:8px; align-items:stretch; height:100%;}
-  .stackvar{border:1px solid #24405f; background:#0b1b30; border-radius:10px; padding:8px 10px; color:var(--stack); font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace; font-size:12px;}
-  .stackvar .meta{display:block; color:var(--muted); font-size:11px; margin-top:4px;}
-  .stack-empty{color:var(--muted); text-align:center; margin-top:12px;}
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--fg);
+  font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
 
-  /* Heap panel */
-  .heap-body{padding:10px; display:flex; flex-wrap:wrap; gap:10px; align-content:flex-start; align-items:flex-start;}
-  .heapobj{min-width:160px; max-width:220px; border:1px solid var(--border); background:#0e1a31; border-radius:10px; padding:8px 10px;
-           color:var(--heap); font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace; font-size:12px;
-           box-shadow:0 6px 18px rgba(0,0,0,.35); position:relative;}
-  .heapobj .meta{display:block; color:var(--muted); font-size:11px; margin-top:4px;}
-  .heapobj.leak{outline:2px dashed var(--warn);}
-  .heapobj.freed{opacity:.35; filter:saturate(.5);}
+header {
+  padding:10px 18px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap
+}
 
-  /* Controls */
-  .controls{position:absolute; left:12px; bottom:12px; right:12px; display:flex; gap:8px; align-items:center; justify-content:space-between;}
-  .btn{border:1px solid var(--border); background:#0f1a34; color:var(--fg); padding:8px 12px; border-radius:10px; cursor:pointer; font-size:13px;}
-  .btn:disabled{opacity:.5; cursor:not-allowed;}
-  .legend{display:flex; gap:14px; font-size:12px; color:var(--muted);}
-  .dot{width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px;}
-  .dot.stack{background:var(--stack);} .dot.heap{background:var(--heap);} .dot.warn{background:var(--warn);}
-  footer{position:absolute; left:12px; right:12px; bottom:12px; display:flex; gap:8px; align-items:center; justify-content:space-between;}
-  .status{font-size:12px; color:var(--muted);}
+header h1 {
+  font-size:17px;
+  margin:0;
+  font-weight:700;
+  letter-spacing:.2px
+}
+
+header .hint {
+  font-size:11px;
+  color:var(--muted)
+}
+
+.container {
+  display:grid;
+  grid-template-columns:1.1fr 1fr 1fr;
+  gap:8px;
+  padding:8px;
+  height:calc(100vh - 80px);
+}
+
+.panel {
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:#0e1830;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  min-height:300px;
+}
+
+.panel h2 {
+  margin:0;
+  padding:6px 10px;
+  font-size:12px;
+  letter-spacing:.3px;
+  border-bottom:1px solid var(--border);
+  background:#0f1a34;
+  color:var(--muted)
+}
+
+.body {
+  flex:1;
+  overflow:auto;
+  padding:6px 8px;
+}
+
+pre {
+  margin:0;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+  font-size:12px;
+  line-height:1.5;
+  background:var(--code);
+  border-radius:8px;
+  padding:6px;
+}
+
+.line {
+  padding:0 4px;
+  } .line.active{background:var(--hl);
+  } .anno{color:var(--muted);
+  margin-left:6px;
+  font-style:italic;
+}
+
+
+/* Stack panel — bottom-pinned, grows upward, responsive */
+.stack-body{
+  height: 100%;                 /* fill the panel's body */
+  display: flex;
+  flex-direction: column;
+  position: relative;           /* anchor for the empty overlay */
+}
+
+#stackBody{
+  flex: 1 1 auto;               /* take remaining height */
+  display: flex;
+  flex-direction: column-reverse;  /* first child is rendered at the bottom */
+  justify-content: flex-start;     /* "start" on reversed axis = bottom edge */
+  gap: 6px;
+  overflow-y: auto;             /* make this the scroll container */
+  padding: 8px;                 /* inner padding */
+  box-sizing: border-box;       /* padding included in width */
+  width: 100%;                  /* never exceed the panel width */
+  max-width: 100%;
+}
+
+.stack-empty{
+  position: absolute;           /* centered overlay when empty */
+  inset: 0;
+  display: none;                /* JS toggles this */
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.stackvar{
+  border: 1px solid #24405f;
+  background: #0b1b30;
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: var(--stack);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  width: 100%;                  /* ensure entries fit the panel width */
+  box-sizing: border-box;
+}
+.stackvar.invalid{ border-color:#5f2430; color:var(--danger); background:#2a0f16; }
+
+
+
+
+
+/* Vertical heap arena */
+
+/*
+.heap-arena {
+  position:absolute; right:32px; left:52px; top:0; bottom:0;
+  border:1px dashed var(--border); border-radius:10px;
+  background:repeating-linear-gradient(180deg,#0d1934 0 28px,#0c1730 28px 56px);
+  box-shadow:inset 0 0 0 1px #182445;
+}
+*/
+
+.heap-body{
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.heap-arena{
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: repeating-linear-gradient(180deg,#0d1934 0 28px,#0c1730 28px 56px);
+  box-shadow: inset 0 0 0 1px #182445;
+  overflow-y: auto;                /* <-- scrollable */
+  scroll-behavior: smooth;         /* optional */
+}
+
+.heap-arena-wrap {
+  position:relative;
+  width:100%;
+  height:320px;
+}
+
+.heap-gutter {
+  position:absolute; left:0; top:0; bottom:0; width:44px;
+  display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+  color:var(--muted); font-size:10px;
+}
+
+.heap-block {
+  position:absolute; left:8px; right:8px;
+  border:1px solid var(--border);
+  background:#0e1a31; border-radius:6px; color:var(--heap);
+  font-family:ui-monospace; font-size:11px; padding:6px 8px;
+  box-shadow:0 2px 6px rgba(0,0,0,.4);
+  transition:all .25s ease;
+  overflow:hidden;
+}
+
+.heap-block .badge {
+  position:absolute;
+  right:6px;
+  bottom:4px;
+  font-size:10px;
+  color:#cfe8ff;
+  opacity:.85;
+}
+
+.heap-block.leak {
+  outline:2px dashed var(--warn);
+  outline-offset:-2px;
+  border-radius:6px;
+  box-shadow:0 0 6px 2px rgba(255,209,102,.35);
+}
+
+.heap-block.freed { opacity:.3; filter:saturate(.5); }
+
+ /* pointer arrows inside heap area */
+.heap-svg {
+  position:absolute;
+  left:52px;
+  right:32px;
+  top:0;
+  bottom:0;
+  pointer-events:none;
+}
+
+.ptr path {
+  stroke:var(--accent);
+  stroke-width:2;
+  fill:none;
+  marker-end:url(#arrowHead);
+  opacity:.9;
+}
+
+.ptr text {
+  font-size:10px;
+  fill:var(--accent);
+  dominant-baseline:middle;
+}
+
+.heap-legend {
+  font-size:11px;
+  color:var(--muted);
+  text-align:center;
+  margin-top:6px;
+}
+
+.heap-legend::before {
+  content:"";
+  display:block; margin-bottom:2px;
+}
+
+
+
+footer {
+  position:fixed;
+  left:8px;
+  right:8px;
+  bottom:6px;
+  background:#0f1a34;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:4px 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size:11px;
+  color:var(--muted);
+}
+
+.btn {
+  border:1px solid var(--border);
+  background:#0f1a34;
+  color:var(--fg);
+  padding:4px 8px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:11px;
+}
+
+.btn:disabled {
+  opacity:.5;
+  cursor:not-allowed;
+}
+
 </style>
 </head>
 <body>
-  <header>
-    <h1>C++ Lifetime Stepper — <span style="color:var(--accent)">Code</span> • <span style="color:var(--stack)">Stack</span> • <span style="color:var(--heap)">Heap</span></h1>
-    <div class="hint">Use ← / → to step • Slide = one function run • Return / closing brace clears stack</div>
-  </header>
-  <div class="container">
-    <!-- Code Panel -->
-    <section class="panel" id="codePanel">
-      <h2>1) Code</h2>
-      <div class="body">
-        <pre><code id="code">
-        </code></pre>
-      </div>
-      <div class="controls">
-        <div class="legend">
-          <span><span class="dot stack"></span>stack local</span>
-          <span><span class="dot heap"></span>heap object</span>
-          <span><span class="dot warn"></span>leak</span>
-        </div>
-        <div>
-          <button class="btn" id="prevBtn">← Prev</button>
-          <button class="btn" id="nextBtn">Next →</button>
-          <button class="btn" id="resetBtn">Reset</button>
-        </div>
-      </div>
-    </section>
-    <!-- Stack Panel -->
-    <section class="panel">
-      <h2>2) Stack (locals variables)</h2>
-      <div class="body stack-body" id="stackBody">
-        <div class="stack-empty" id="stackEmpty">⟂ (empty)</div>
-      </div>
-    </section>
-    <!-- Heap Panel -->
-    <section class="panel">
-      <h2>3) Heap (dynamic variables)</h2>
-      <div class="body heap-body" id="heapBody">
-      </div>
-    </section>
-  </div>
+<header>
+  <h1>Demo Slide</h1>
+  <div class="hint">Use ← / → / R to step • Generated from cpp=stack_heap_stepper.cpp</div>
+</header>
 
-  <footer>
-    <div class="status" id="status">Step 0 / 14</div>
-  </footer>
+<div class="container">
+  <section class="panel">
+    <h2>1) Code</h2>
+    <div class="body"><pre id="code"></pre></div>
+  </section>
+
+  <section class="panel">
+    <h2>2) Stack</h2>
+    <div class="body stack-body">
+      <div class="stack-empty" id="stackEmpty">⟂ (empty)</div>
+      <div id="stackBody"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>3) Heap (vertical pool)</h2>
+    <div class="body heap-body">
+      <div class="heap-arena-wrap">
+        <div class="heap-gutter"><div>low</div><div>high</div></div>
+        <div class="heap-arena" id="heapArena"></div>
+        <svg class="heap-svg" id="heapSvg" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+          <defs><marker id="arrowHead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"></path>
+          </marker></defs>
+        </svg>
+      </div>
+      <div class="heap-legend"></div>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div>
+    <button class="btn" id="prevBtn" disabled>← Prev</button>
+    <button class="btn" id="nextBtn">Next →</button>
+    <button class="btn" id="resetBtn">Reset</button>
+  </div>
+  <div id="status">Step 0</div>
+  <div id="perf">Perf: —</div>
+</footer>
 
 <script>
-// ----- Sample C++ function and step actions -----
-const program = [
-  { src: "int run() {", anno: "stack frame created", action: null },
-  { src: "  int a = 5;", action: {type:"push_stack", name:"a", value:"5", info:"int"} },
-  { src: "  float f = 3.14f;", action: {type:"push_stack", name:"f", value:"3.14", info:"float"} },
-  { src: "  char buf[8] = {0};", action: {type:"push_stack", name:"buf[8]", value:"{0}", info:"char[8]"} },
-  { src: "  int arr[3] = {1,2,3};", action: {type:"push_stack", name:"arr[3]", value:"{1,2,3}", info:"int[3]"} },
-  { src: "  int* p = new int(42);", action: {type:"alloc_heap", id:"H1", label:"int* p → 42", meta:"owner: run()"} },
-  { src: "  int* q = new int[4]{9,8,7,6};", action: {type:"alloc_heap", id:"H2", label:"int* q → [9,8,7,6]", meta:"owner: run()"} },
-  { src: "  // use(p, q);", action: null },
-  { src: "  delete p;", action: {type:"free_heap", id:"H1"} },
-  { src: "  // oops: forget to delete[] q;", action: {type:"leak", id:"H2"} },
-  { src: "  a += arr[0];", action: {type:"update_stack", name:"a", value:"6"} },
-  { src: "  return a;", action: {type:"return"} },
-  { src: "}", action: {type:"close"} },
-];
+/*** Program data ***/
+const P = [{"src": "int run()\n", "perf": "—"}, {"src": "{                                         // @label name=basic_heap_example\n", "a": {"t": "label", "name": "basic_heap_example"}, "perf": "—"}, {"src": "  int a = 5;                              // @push name=a val=5\n", "a": {"t": "push_stack", "name": "a", "val": 5, "info": null}, "perf": "—"}, {"src": "  float f = 3.14f;                        // @push name=f val=3.14\n", "a": {"t": "push_stack", "name": "f", "val": "3.14", "info": null}, "perf": "—"}, {"src": "  int* p = new int[42];                   // @alloc id=H1 label=\"p→int[42]\" size=168\n", "a": {"t": "alloc_heap", "id": "H1", "label": "p→int[42]", "size": 168, "meta": null}, "perf": "—"}, {"src": "                                          // @bind_ptr name=p id=H1\n", "a": {"t": "bind_ptr", "name": "p", "id": "H1"}, "perf": "—"}, {"src": "                                          // @push name=p val=\"<heap H1>\"\n", "a": {"t": "push_stack", "name": "p", "val": "<heap H1>", "info": null}, "perf": "—"}, {"src": "  int* q = new int[4]{9,8,7,6};           // @alloc id=H2 label=\"q→int[4]\" size=16\n", "a": {"t": "alloc_heap", "id": "H2", "label": "q→int[4]", "size": 16, "meta": null}, "perf": "—"}, {"src": "                                          // @bind_ptr name=q id=H2\n", "a": {"t": "bind_ptr", "name": "q", "id": "H2"}, "perf": "—"}, {"src": "                                          // @push name=q val=\"<heap H2>\"\n", "a": {"t": "push_stack", "name": "q", "val": "<heap H2>", "info": null}, "perf": "—"}, {"src": "  // ..use(p, q);\n", "perf": "—"}, {"src": "  delete p;                               // @free id=H1\n", "a": {"t": "free_heap", "id": "H1"}, "perf": "heap: free"}, {"src": "  a += arr[0];                            // @update_stack name=a val=14\n", "a": {"t": "update_stack", "name": "a", "val": 14}, "perf": "—"}, {"src": "  return a;                               // @leak id=H2\n", "a": {"t": "leak", "id": "H2"}, "perf": "stack: pop frame"}, {"src": "                                          // @pop_stack\n", "a": {"t": "pop_stack", "name": null, "id": null, "count": null}, "perf": "—"}, {"src": "                                          // @pop_stack\n", "a": {"t": "pop_stack", "name": null, "id": null, "count": null}, "perf": "—"}, {"src": "                                          // @pop_stack\n", "a": {"t": "pop_stack", "name": null, "id": null, "count": null}, "perf": "—"}, {"src": "                                          // @pop_stack\n", "a": {"t": "pop_stack", "name": null, "id": null, "count": null}, "perf": "—"}, {"src": "}\n", "perf": "stack: pop frame"}, {"src": "\n", "perf": "—"}];
 
-// ----- DOM -----
+/*** DOM ***/
 const codeEl = document.getElementById('code');
 const stackBody = document.getElementById('stackBody');
 const stackEmpty = document.getElementById('stackEmpty');
-const heapBody = document.getElementById('heapBody');
+const heapArena = document.getElementById('heapArena');
+const heapSvg = document.getElementById('heapSvg');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 const resetBtn = document.getElementById('resetBtn');
 const statusEl = document.getElementById('status');
+const perfEl = document.getElementById('perf');
 
-// ----- State -----
-let step = 0;
-const stack = []; // {name, value, info, el}
-const heap = new Map(); // id -> {label, meta, el, leaked}
-
-// ----- Render code -----
-function renderCode(){
-  codeEl.innerHTML = "";
-  program.forEach((line, i) => {
-    const row = document.createElement('div');
-    row.className = 'line' + (i===step ? ' active' : '');
-    const g = document.createElement('div'); g.className='gutter'; g.textContent = i+1;
-    const s = document.createElement('div'); s.className='src'; s.textContent = line.src;
-    if(line.anno){
-      const ann = document.createElement('span'); ann.className='anno'; ann.textContent = '// '+ line.anno; s.appendChild(ann);
-    }
-    row.appendChild(g); row.appendChild(s);
-    codeEl.appendChild(row);
-  });
+/*** Label table ***/
+function buildLabels(P){
+  const m = {};
+  for (let i=0;i<P.length;i++){
+    const a = P[i].a;
+    if (a && a.t === 'label' && a.name) m[a.name] = i;
+  }
+  return m;
 }
 
-// ----- Stack helpers -----
-function updateStackEmpty(){
-  if(stack.length===0){ stackEmpty.style.display = 'block'; }
-  else { stackEmpty.style.display = 'none'; }
-}
-function pushStack(name, value, info){
-  const el = document.createElement('div');
-  el.className = 'stackvar';
-  el.innerHTML = `${name} = ${value}<span class="meta">${info}</span>`;
-  stackBody.appendChild(el);
-  stack.push({name,value,info,el});
-  updateStackEmpty();
-}
-function updateStackValue(name, value){
-  const it = stack.find(x=>x.name===name);
-  if(it){ it.value=value; it.el.innerHTML = `${name} = ${value}<span class="meta">${it.info}</span>`; }
-}
-function clearStack(){
-  stack.forEach(x=>x.el.remove());
-  stack.length = 0;
-  updateStackEmpty();
+/*** Initial state ***/
+function initialState(){
+  return {
+    pc: -1,
+    labels: buildLabels(P),
+    callStack: [],
+    frameSeq: 0,
+    frames: [],                 // [{frameId, func, params:{n}}]
+    stack: [],                  // [{name,value,info,invalid,frameId}]
+    heap: [],                   // [{id,size,type,uc,leaked,freed,label,meta,frameId}]
+    ptrBindings: new Map()
+  };
 }
 
-// ----- Heap helpers -----
-function allocHeap(id, label, meta){
-  if(heap.has(id)) return;
-  const el = document.createElement('div');
-  el.className = 'heapobj';
-  el.innerHTML = `${label}<span class="meta">${meta||""}</span>`;
-  heapBody.appendChild(el);
-  heap.set(id,{label,meta,el,leaked:false});
-}
-function freeHeap(id){
-  const obj = heap.get(id);
-  if(!obj) return;
-  obj.el.classList.add('freed');
-  setTimeout(()=>{ obj.el.remove(); heap.delete(id); }, 200);
-}
-function markLeak(id){
-  const obj = heap.get(id);
-  if(obj){ obj.leaked = true; obj.el.classList.add('leak'); }
-}
-function clearHeap(){
-  heap.forEach((v,k)=> v.el.remove());
-  heap.clear();
+let state = initialState();
+
+/*** Reducer helpers ***/
+function topFrame(S){ return S.frames[S.frames.length-1] || null; }
+function currentFrameId(S){ const f = topFrame(S); return f ? f.frameId : -1; }
+function currentN(S){ const f = topFrame(S); return (f && f.params && typeof f.params.n === 'number') ? f.params.n : 0; }
+
+function pushFrame(S, funcName, nVal){
+  const id = ++S.frameSeq;
+  S.frames.push({ frameId:id, func:funcName, params:{ n:Number(nVal) } });
 }
 
-// ----- Step engine -----
-function apply(action){
-  if(!action) return;
-  switch(action.type){
-    case 'push_stack': pushStack(action.name, action.value, action.info||""); break;
-    case 'update_stack': updateStackValue(action.name, action.value); break;
-    case 'alloc_heap': allocHeap(action.id, action.label, action.meta); break;
-    case 'free_heap': freeHeap(action.id); break;
-    case 'leak': markLeak(action.id); break;
-    case 'return': clearStack(); break;
-    case 'close': clearStack(); break;
+function popFrame(S){
+  const f = topFrame(S);
+  if (!f) return;
+  const fid = f.frameId;
+  S.frames.pop();
+  for (let i=S.stack.length-1;i>=0;--i){
+    if (S.stack[i].frameId === fid) S.stack.splice(i,1);
   }
 }
 
-function gotoStep(n){
-  n = Math.max(0, Math.min(program.length-1, n));
-  // Reset and replay up to n
-  step = 0;
-  clearStack(); clearHeap();
-  for(let i=0;i<=n;i++){ apply(program[i].action); step = i; }
-  renderCode();
-  statusEl.textContent = `Step ${step} / ${program.length-1}`;
-  prevBtn.disabled = (step===0);
-  nextBtn.disabled = (step===program.length-1);
+function evalArgExpr(arg, S){
+  if (arg == null) return currentN(S);
+  if (typeof arg === 'number') return arg;
+  const s = String(arg).trim();
+  if (/^[+-]?\d+$/.test(s)) return Number(s);
+  if (/^\s*n\s*$/.test(s)) return currentN(S);
+  const m = /^\s*n\s*([+-])\s*(\d+)\s*$/.exec(s);
+  if (m){ const k=Number(m[2]); return m[1]==='-' ? currentN(S)-k : currentN(S)+k; }
+  return currentN(S);
 }
 
-prevBtn.onclick = ()=> gotoStep(step-1);
-nextBtn.onclick = ()=> gotoStep(step+1);
-resetBtn.onclick = ()=> gotoStep(0);
-document.addEventListener('keydown', (e)=>{
-  if(e.key==='ArrowRight' || e.key==='PageDown' || e.key===' '){ gotoStep(step+1); }
-  if(e.key==='ArrowLeft' || e.key==='PageUp'){ gotoStep(step-1); }
-});
+function evalExpr(expr, S){
+  if (expr == null) return '';
+  if (typeof expr === 'number') return expr;
+  const s = String(expr);
+  const mh = /^<\s*heap\s+(\S+)\s*>$/i.exec(s);
+  if (mh){
+    let id = mh[1], h=2166136261>>>0;
+    for (let i=0;i<id.length;i++){ h ^= id.charCodeAt(i); h = Math.imul(h,16777619); }
+    const lo=(h&0xffff).toString(16).padStart(4,'0'), hi=((h>>>16)&0xffff).toString(16).padStart(4,'0');
+    return `0x7ff${hi}${lo}`;
+  }
+  if (/^<.*>$/.test(s)) return s;
+  if (/^[+-]?\d+$/.test(s)) return Number(s);
+  if (/^\s*n\s*$/.test(s)) return currentN(S);
+  const m = /^\s*n\s*([+-])\s*(\d+)\s*$/.exec(s);
+  if (m){ const k=Number(m[2]); return m[1]==='-' ? currentN(S)-k : currentN(S)+k; }
+  return s;
+}
 
-// Init
-renderCode(); updateStackEmpty();
-gotoStep(0);
+/*** Heap as array ***/
+function heapAlloc(S, {id, size, type, label, meta}){
+  S.heap.push({
+    id,
+    size: (size ?? 40),
+    type: (type ?? 'raw'),
+    uc: undefined,
+    leaked:false,
+    freed:false,
+    label: label || id,
+    meta: meta || '',
+    frameId: currentFrameId(S)
+  });
+}
+function heapFindLastOpen(S, id){
+  for (let i=S.heap.length-1;i>=0;--i){
+    const b = S.heap[i];
+    if (b.id === id && !b.freed) return b;
+  }
+  return null;
+}
+function heapFree(S, id){
+  const b = heapFindLastOpen(S, id);
+  if (b) b.freed = true;
+}
+function heapLeak(S, id){
+  const b = heapFindLastOpen(S, id);
+  if (b) b.leaked = true;
+}
+
+/*** Pure reducer ***/
+function step(prev, P){
+  const S = {
+    pc: prev.pc,
+    labels: prev.labels,
+    callStack: prev.callStack.slice(),
+    frameSeq: prev.frameSeq,
+    frames: prev.frames.map(f => ({...f, params:{...(f.params||{})}})),
+    stack: prev.stack.map(x => ({...x})),
+    heap: prev.heap.map(b => ({...b})),
+    ptrBindings: new Map(prev.ptrBindings)
+  };
+
+  S.pc = S.pc + 1;
+  if (S.pc >= P.length) return { state:{...S, pc:P.length-1}, done:true };
+
+  const ins = P[S.pc];
+  const a = ins.a || null;
+
+  switch(a?.t){
+    case 'label': return { state:S, done:false };
+
+    case 'call': {
+      const target = a.target ?? a.func;
+      const idx = S.labels[target];
+      if (typeof idx !== 'number') return { state:S, done:false };
+      const nextN = evalArgExpr(a.arg, S);
+      pushFrame(S, target, nextN);
+      S.callStack.push({ret:S.pc+1});
+      S.pc = idx;
+      return { state:S, done:false };
+    }
+
+    case 'tailcall': {
+      const target = a.target ?? a.func;
+      const idx = S.labels[target];
+      if (typeof idx !== 'number') return { state:S, done:false };
+      const nextN = evalArgExpr(a.arg, S);
+      const tf = topFrame(S);
+      if (tf) tf.params.n = Number(nextN); else pushFrame(S, target, nextN);
+      S.pc = idx;
+      return { state:S, done:false };
+    }
+
+    case 'ret': {
+      const n = currentN(S);
+      if (n <= 0){
+        popFrame(S);
+        const fr = S.callStack.pop();
+        if (fr && typeof fr.ret === 'number') S.pc = fr.ret;
+      }
+      return { state:S, done:false };
+    }
+
+	case 'ret_auto': {
+	  // Pop frames repeatedly while the current site is a return
+	  // For base-case gated returns, still respect n<=0
+	  while (true) {
+	    const n = currentN(S);
+	    if (n <= 0) {
+	      popFrame(S);
+	      const fr = S.callStack.pop();
+	      if (fr && typeof fr.ret === 'number') {
+	        S.pc = fr.ret;                      // jump to caller’s next instruction
+	      } else {
+	        break;                               // nothing else to return to
+	      }
+	    } else {
+	      break;                                 // not base-case yet
+	    }
+	
+	    // If the new PC points at another ret/ret_auto, continue; otherwise stop.
+	    const ins = P[S.pc];
+	    const t = ins && ins.a ? ins.a.t : '';
+	    if (t !== 'ret' && t !== 'ret_auto') break;
+	  }
+	  return { state:S, done:false };
+	}
+	
+	case 'unwind': {
+	  const k = (a.count != null) ? Number(a.count) : null;
+	  const funcName = a.func || null;
+	  let popped = 0;
+	
+	  while (S.frames.length) {
+	    const top = topFrame(S);
+	    if (funcName && top.func !== funcName) break;  // stop at different function
+	    popFrame(S);
+	    S.callStack.pop();
+	    popped++;
+	    if (k != null && popped >= k) break;
+	  }
+	  // After bulk-pop, set PC to a stable position:
+	  const fr = S.callStack[S.callStack.length - 1];
+	  if (fr && typeof fr.ret === 'number') {
+	    S.pc = fr.ret;
+	  } else {
+	    // no caller: step to end (let the controller render gracefully)
+	    S.pc = Math.min(S.pc, P.length - 1);
+	  }
+	  return { state:S, done:false };
+	}
+	
+	case 'unwind_all': {
+	  const funcName = a.func || null;
+	  while (S.frames.length) {
+	    const top = topFrame(S);
+	    if (funcName && top.func !== funcName) break;
+	    popFrame(S);
+	    S.callStack.pop();
+	  }
+	  const fr = S.callStack[S.callStack.length - 1];
+	  if (fr && typeof fr.ret === 'number') S.pc = fr.ret;
+	  return { state:S, done:false };
+	}
+
+    case 'clear_stack': {
+      // instantly clear all stack locals
+      S.stack = [];
+      return { state:S, done:false };
+    }
+
+    case 'push_stack': case 'push': {
+      const v = evalExpr(a.val ?? a.value, S);
+      S.stack.push({
+        name:a.name,
+        value:String(v),
+        info:a.info||'',
+        invalid:false,
+        frameId: currentFrameId(S)
+      });
+      return { state:S, done:false };
+    }
+
+    case 'update_stack': case 'update': {
+      const v = evalExpr(a.val ?? a.value, S);
+      for (let i=S.stack.length-1;i>=0;--i){
+        const it = S.stack[i];
+        if (it.name === a.name && !it.invalid){ it.value = String(v); break; }
+      }
+      return { state:S, done:false };
+    }
+
+	case 'pop_stack': {
+	  // Parameters (all optional)
+	  const wantName  = a.name ?? null;
+	  const wantId    = a.id   ?? null;   // see "Entry id" note below
+	  let   remaining = (a.count != null) ? Math.max(0, Number(a.count)) : 1;
+	
+	  if (remaining === 0) return { state:S, done:false };
+	
+	  // Pop from the top backward; remove the first N matching entries
+	  for (let i = S.stack.length - 1; i >= 0 && remaining > 0; --i) {
+	    const it = S.stack[i];
+	    const nameMatch = (wantName == null) || (it.name === wantName);
+	    const idMatch   = (wantId   == null) || (it.id   === wantId);
+	    if (nameMatch && idMatch) {
+	      S.stack.splice(i, 1);
+	      remaining--;
+	    }
+	  }
+	  return { state:S, done:false };
+	}
+
+    case 'invalidate': {
+      for (let i=S.stack.length-1;i>=0;--i){
+        const it = S.stack[i];
+        if (it.name === a.name){ it.invalid = true; break; }
+      }
+      return { state:S, done:false };
+    }
+
+    case 'dangling': {
+      S.stack.push({ name:a.name, value:'<invalid>', info:'dangling', invalid:true, frameId: currentFrameId(S) });
+      return { state:S, done:false };
+    }
+
+    case 'alloc_heap': case 'alloc':
+      heapAlloc(S, { id:a.id, size:a.size, type:'raw', label:a.label, meta:a.meta }); return { state:S, done:false };
+
+    case 'free_heap': case 'free':
+      heapFree(S, a.id); return { state:S, done:false };
+
+    case 'leak':
+      heapLeak(S, a.id); return { state:S, done:false };
+
+    case 'sp_alloc':
+      heapAlloc(S, { id:a.id, size: a.size ?? 48, type:'sp', label:a.label, meta:'' });
+      { const b = heapFindLastOpen(S, a.id); if (b) b.uc = a.uc ?? 1; }
+      return { state:S, done:false };
+
+    case 'sp_inc': {
+      const b = heapFindLastOpen(S, a.id);
+      if (b) b.uc = (b.uc ?? 0) + 1;
+      return { state:S, done:false }; }
+
+    case 'sp_dec': {
+      const b = heapFindLastOpen(S, a.id);
+      if (b) { b.uc = Math.max(0,(b.uc??0)-1); if (b.uc===0) b.freed = true; }
+      return { state:S, done:false };
+    }
+
+    case 'sp_free': {
+      const b = heapFindLastOpen(S, a.id);
+      if (b) { b.uc = 0; b.freed = true; }
+      return { state:S, done:false };
+    }
+
+    case 'sp_cycle_leak': {
+      (a.ids||[]).forEach(id => heapLeak(S,id));
+      return { state:S, done:false };
+    }
+
+    case 'bind_ptr': S.ptrBindings.set(a.name, a.id); return { state:S, done:false };
+    case 'unbind_ptr': S.ptrBindings.delete(a.name); return { state:S, done:false };
+  }
+
+  return { state:S, done:false };
+}
+
+/*** Renderers ***/
+const HEAP_SPACING = 6, HEAP_MIN_H = 22, HEAP_MAX_H = 96, SIZE_SCALE = 1.0;
+
+function renderCode(){
+  codeEl.innerHTML = '';
+  for (let i=0;i<P.length;i++){
+    const row = document.createElement('div');
+    row.className = 'line' + (i === state.pc ? ' active' : '');
+    row.textContent = P[i].src;
+    if (P[i].anno){
+      const ann = document.createElement('span'); ann.className='anno';
+      ann.textContent = ' // ' + P[i].anno; row.appendChild(ann);
+    }
+    codeEl.appendChild(row);
+  }
+  const active = document.querySelector('.line.active');
+  if (active) active.scrollIntoView({block:'center'});
+}
+
+function renderStack(){
+  while (stackBody.firstChild) stackBody.removeChild(stackBody.firstChild);
+  if (!state.stack.length){ stackEmpty.style.display = 'block'; return; }
+  stackEmpty.style.display = 'none';
+  for (const it of state.stack){
+    const el = document.createElement('div');
+    el.className = 'stackvar' + (it.invalid ? ' invalid':''); 
+    el.innerHTML = `${it.name} = ${it.value}` + (it.info ? `<span class="meta">${it.info}</span>` : '');
+    stackBody.appendChild(el);
+  }
+}
+
+/*
+function renderHeap(){
+  while (heapArena.firstChild) heapArena.removeChild(heapArena.firstChild);
+  let y = 8;
+  for (const obj of state.heap){
+    const h = Math.max(HEAP_MIN_H, Math.min(HEAP_MAX_H, (obj.size ? obj.size * SIZE_SCALE : 40)));
+    const block = document.createElement('div');
+    block.className = 'heap-block';
+    if (obj.leaked) block.classList.add('leak');
+    if (obj.freed)  block.classList.add('freed');
+    block.style.top = `${y}px`; block.style.height = `${h}px`;
+    const badge = (obj.type === 'sp' && typeof obj.uc === 'number')
+      ? `use_count=${obj.uc}` : (obj.meta ? obj.meta : (obj.size ? `${obj.size}B` : ''));
+    block.innerHTML = `${obj.label || obj.id}<span class="badge">${badge}</span>`;
+    heapArena.appendChild(block);
+    y += h + HEAP_SPACING;
+  }
+}
+*/
+
+// === HEAP: keep the newest allocation (bottom visually) in view ===
+function renderHeap(){
+  while (heapArena.firstChild) heapArena.removeChild(heapArena.firstChild);
+  let y = 8;
+  for (const obj of state.heap){
+    const h = Math.max(HEAP_MIN_H, Math.min(HEAP_MAX_H, (obj.size ? obj.size * SIZE_SCALE : 40)));
+    const block = document.createElement('div');
+    block.className = 'heap-block';
+    if (obj.leaked) block.classList.add('leak');
+    if (obj.freed)  block.classList.add('freed');
+    block.style.top = `${y}px`; block.style.height = `${h}px`;
+    const badge = (obj.type === 'sp' && typeof obj.uc === 'number')
+        ? `use_count=${obj.uc}`
+        : (obj.meta ? obj.meta : (obj.size ? `${obj.size}B` : ''));
+    block.innerHTML = `${obj.label || obj.id}<span class="badge">${badge}</span>`;
+    heapArena.appendChild(block);
+    y += h + HEAP_SPACING;
+  }
+  // auto-scroll to newest (bottom)
+  heapArena.scrollTop = heapArena.scrollHeight;
+}
+
+
+function renderPointers(){
+  while (heapSvg.firstChild) heapSvg.removeChild(heapSvg.firstChild);
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  const marker = document.createElementNS('http://www.w3.org/2000/svg','marker');
+  marker.setAttribute('id','arrowHead'); marker.setAttribute('markerWidth','8');
+  marker.setAttribute('markerHeight','8'); marker.setAttribute('refX','6');
+  marker.setAttribute('refY','4'); marker.setAttribute('orient','auto');
+  const mpath = document.createElementNS('http://www.w3.org/2000/svg','path');
+  mpath.setAttribute('d','M0,0 L8,4 L0,8 z'); mpath.setAttribute('fill','var(--accent)');
+  marker.appendChild(mpath); defs.appendChild(marker); heapSvg.appendChild(defs);
+
+  const rect = heapArena.getBoundingClientRect();
+  heapSvg.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
+
+  state.ptrBindings.forEach((id, name) => {
+    // find last-open block with this id
+    let idx = -1;
+    for (let i=state.heap.length-1;i>=0;--i){ const b=state.heap[i]; if (b.id===id && !b.freed){ idx=i; break; } }
+    if (idx < 0) return;
+    // compute its y/h by re-laying out
+    let y=8, h=0;
+    for (let i=0;i<=idx;i++){ const b=state.heap[i]; const hh=Math.max(HEAP_MIN_H, Math.min(HEAP_MAX_H, (b.size ? b.size * SIZE_SCALE : 40))); if (i===idx){ h=hh; break; } y += hh + HEAP_SPACING; }
+    const cy = y + h/2;
+    const x0 = 8, x1 = rect.width - 12, mx = x0 + (x1-x0)*0.35;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', `M ${x0},${cy} C ${mx},${cy} ${mx},${cy} ${x1},${cy}`);
+    path.setAttribute('class','ptr');
+    heapSvg.appendChild(path);
+
+    const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+    label.setAttribute('x', x0 + 4); label.setAttribute('y', cy); label.setAttribute('class','ptr');
+    label.textContent = name; heapSvg.appendChild(label);
+  });
+}
+
+function renderAll(){
+  renderCode(); renderStack(); renderHeap(); renderPointers();
+  statusEl.textContent = `Step ${Math.max(0,state.pc)} / ${P.length-1}`;
+  perfEl.textContent   = `Perf: ${P[state.pc]?.perf || '—'}`;
+}
+
+/*** Controls ***/
+
+const seedInput = document.getElementById('seedN');
+
+function onReset(){
+  state = initialState();
+  const entryFunc = 'recurse';
+  const entryIdx  = state.labels[entryFunc];
+  const initialN  = Number(seedInput?.value ?? 4);
+  if (typeof entryIdx === 'number') {
+    pushFrame(state, entryFunc, initialN);
+    state.pc = entryIdx - 1;
+  }
+  renderAll();
+}
+
+function onNext(){
+  const res = step(state, P);
+  state = res.state;
+  renderAll();
+}
+
+prevBtn.onclick = ()=>{};
+nextBtn.onclick = onNext;
+resetBtn.onclick = onReset;
+
+function handleKey(e){
+  const tag = (e.target && e.target.tagName) || '';
+  if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+  switch(e.key){
+    case 'ArrowRight': case 'PageDown': case ' ':
+      e.preventDefault(); onNext(); break;
+    case 'ArrowLeft': case 'PageUp':
+      e.preventDefault(); break;
+    case 'r': case 'R':
+      e.preventDefault(); onReset(); break;
+  }
+}
+document.addEventListener('keydown', handleKey, {capture:true});
+
+/*** Init ***/
+onReset();
 </script>
 </body>
 </html>
