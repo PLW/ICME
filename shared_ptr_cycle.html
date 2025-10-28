@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SharedPtr cycle Demo Slide</title>
+<title>Shared Ptr Cycle Demo Slide</title>
 <style>
 :root{
   --bg:#0b1220; --panel:#0f1a34; --border:#1f2a41; --fg:#e8ecf1; --muted:#a7b3c2;
@@ -283,15 +283,12 @@ footer {
 </head>
 <body>
 <header>
-  <h1>Demo Slide</h1>
+  <h1>Shared Ptr Cycle Demo Slide</h1>
   <div class="hint">Use ← / → / R to step • Generated from cpp=cycle.cpp</div>
 </header>
 
 <div class="container">
   <section class="panel">
-    <label style="font-size:11px;color:var(--muted);padding:4px 4px;">
-      Start n: <input id="seedN" type="number" value="4" style="width:30px;height:12px;font-size:11px;">
-    </label>
     <h2>1) Code</h2>
     <div class="body"><pre id="code"></pre></div>
   </section>
@@ -305,7 +302,7 @@ footer {
   </section>
 
   <section class="panel">
-    <h2>3) Heap</h2>
+    <h2>3) Heap (vertical pool)</h2>
     <div class="body heap-body">
       <div class="heap-arena-wrap">
         <div class="heap-gutter"><div>low</div><div>high</div></div>
@@ -333,7 +330,7 @@ footer {
 
 <script>
 /*** Program data ***/
-const P = [{"src": "\n", "perf": "—"}, {"src": "struct Node {\n", "perf": "—"}, {"src": "  std::shared_ptr<Node> next; \n", "perf": "—"}, {"src": "  std::shared_ptr<Node> prev; \n", "perf": "—"}, {"src": "};\n", "perf": "stack: pop frame"}, {"src": "\n", "perf": "—"}, {"src": "void shared_ptr_cycle() {\n", "perf": "—"}, {"src": "  auto a = std::make_shared<Node>();    // @sp_alloc id=H1 label=\"[a]→Node\"\n", "a": {"t": "sp_alloc", "id": "H1", "label": "[a]→Node", "uc": 1, "size": null}, "perf": "heap: allocate control block + object"}, {"src": "                                        // @bind_ptr name=a id=H1\n", "a": {"t": "bind_ptr", "name": "a", "id": "H1"}, "perf": "—"}, {"src": "                                        // @push name=a val=\"<heap H1>\"\n", "a": {"t": "push_stack", "name": "a", "val": "<heap H1>", "info": null}, "perf": "—"}, {"src": "  auto b = std::make_shared<Node>();    // @sp_alloc id=H2 label=\"[b]→Node\"\n", "a": {"t": "sp_alloc", "id": "H2", "label": "[b]→Node", "uc": 1, "size": null}, "perf": "heap: allocate control block + object"}, {"src": "                                        // @bind_ptr name=b id=H2\n", "a": {"t": "bind_ptr", "name": "b", "id": "H2"}, "perf": "—"}, {"src": "                                        // @push name=b val=\"<heap H2>\"\n", "a": {"t": "push_stack", "name": "b", "val": "<heap H2>", "info": null}, "perf": "—"}, {"src": "  a->next = b;                          // @sp_inc id=H2\n", "a": {"t": "sp_inc", "id": "H2"}, "perf": "—"}, {"src": "  b->prev = a;                          // @sp_inc id=H1\n", "a": {"t": "sp_inc", "id": "H1"}, "perf": "—"}, {"src": "}                                       // @pop_stack\n", "a": {"t": "pop_stack", "name": null, "id": null, "count": null}, "perf": "stack: pop frame"}, {"src": "                                        // @sp_dec id=H2\n", "a": {"t": "sp_dec", "id": "H2"}, "perf": "—"}, {"src": "                                        // @pop_stack\n", "a": {"t": "pop_stack", "name": null, "id": null, "count": null}, "perf": "—"}, {"src": "                                        // @sp_dec id=H1\n", "a": {"t": "sp_dec", "id": "H1"}, "perf": "—"}, {"src": "                                        // @leak id=H1\n", "a": {"t": "leak", "id": "H1"}, "perf": "—"}, {"src": "                                        // @leak id=H2\n", "a": {"t": "leak", "id": "H2"}, "perf": "—"}];
+const P = [{"src": "\n", "perf": "—"}, {"src": "struct Node {\n", "perf": "—"}, {"src": "  std::shared_ptr<Node> next; \n", "perf": "—"}, {"src": "  std::shared_ptr<Node> prev; \n", "perf": "—"}, {"src": "};\n", "perf": "stack: pop frame"}, {"src": "\n", "perf": "—"}, {"src": "void cycle() {\n", "perf": "—"}, {"src": "  auto a = std::make_shared<Node>();    // @sp_alloc id=H1 label=\"[a]→Node\"\n", "a": {"t": "sp_alloc", "id": "H1", "label": "[a]→Node", "uc": 1, "size": null}, "perf": "heap: allocate control block + object"}, {"src": "                                        // @bind_ptr name=a id=H1\n", "a": {"t": "bind_ptr", "name": "a", "id": "H1"}, "perf": "—"}, {"src": "                                        // @push name=a val=\"[heap H1]\"\n", "a": {"t": "push_stack", "name": "a", "val": "[heap H1]", "info": null}, "perf": "—"}, {"src": "  auto b = std::make_shared<Node>();    // @sp_alloc id=H2 label=\"[b]→Node\"\n", "a": {"t": "sp_alloc", "id": "H2", "label": "[b]→Node", "uc": 1, "size": null}, "perf": "heap: allocate control block + object"}, {"src": "                                        // @bind_ptr name=b id=H2\n", "a": {"t": "bind_ptr", "name": "b", "id": "H2"}, "perf": "—"}, {"src": "                                        // @push name=b val=\"[heap H2]\"\n", "a": {"t": "push_stack", "name": "b", "val": "[heap H2]", "info": null}, "perf": "—"}, {"src": "  a->next = b;                          // @sp_inc id=H2\n", "a": {"t": "sp_inc", "id": "H2"}, "perf": "—"}, {"src": "  b->prev = a;                          // @sp_inc id=H1\n", "a": {"t": "sp_inc", "id": "H1"}, "perf": "—"}, {"src": "}                                       // @pop_stack\n", "a": {"t": "pop_stack", "name": null, "id": null, "count": null}, "perf": "stack: pop frame"}, {"src": "                                        // @sp_dec id=H2\n", "a": {"t": "sp_dec", "id": "H2"}, "perf": "—"}, {"src": "                                        // @pop_stack\n", "a": {"t": "pop_stack", "name": null, "id": null, "count": null}, "perf": "—"}, {"src": "                                        // @sp_dec id=H1\n", "a": {"t": "sp_dec", "id": "H1"}, "perf": "—"}, {"src": "                                        // @leak id=H1\n", "a": {"t": "leak", "id": "H1"}, "perf": "—"}, {"src": "                                        // @leak id=H2\n", "a": {"t": "leak", "id": "H2"}, "perf": "—"}];
 
 /*** DOM ***/
 const codeEl = document.getElementById('code');
@@ -716,7 +713,7 @@ function renderHeap(){
     if (obj.freed)  block.classList.add('freed');
     block.style.top = `${y}px`; block.style.height = `${h}px`;
     const badge = (obj.type === 'sp' && typeof obj.uc === 'number')
-      ? `ref_count=${obj.uc}` : (obj.meta ? obj.meta : (obj.size ? `${obj.size}B` : ''));
+      ? `use_count=${obj.uc}` : (obj.meta ? obj.meta : (obj.size ? `${obj.size}B` : ''));
     block.innerHTML = `${obj.label || obj.id}<span class="badge">${badge}</span>`;
     heapArena.appendChild(block);
     y += h + HEAP_SPACING;
@@ -736,7 +733,7 @@ function renderHeap(){
     if (obj.freed)  block.classList.add('freed');
     block.style.top = `${y}px`; block.style.height = `${h}px`;
     const badge = (obj.type === 'sp' && typeof obj.uc === 'number')
-        ? `ref_count=${obj.uc}`
+        ? `use_count=${obj.uc}`
         : (obj.meta ? obj.meta : (obj.size ? `${obj.size}B` : ''));
     block.innerHTML = `${obj.label || obj.id}<span class="badge">${badge}</span>`;
     heapArena.appendChild(block);
